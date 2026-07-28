@@ -1,3 +1,4 @@
+import type { Section } from './enums';
 import type { ChatContext } from './models';
 
 /**
@@ -12,9 +13,10 @@ import type { ChatContext } from './models';
 
 export const MESSAGE_SOURCE = 'wa-second-brain' as const;
 
-/** Popup → Content: expand/toggle the injected sidebar. */
+/** Popup → Content: expand the injected sidebar, optionally on a given section. */
 export interface OpenSidebarMessage {
   type: 'OPEN_SIDEBAR';
+  section?: Section;
 }
 
 /** ChatDetector (Content) → Sidebar: the active conversation changed. */

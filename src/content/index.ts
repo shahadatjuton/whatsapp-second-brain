@@ -8,6 +8,7 @@ import { sendToBackground } from './bridge';
 import { ChatDetector } from './chat-detector/ChatDetector';
 import { mountSidebar } from './mount';
 import { startReminderSync } from './reminder-sync';
+import { startStatsSync } from './stats-sync';
 
 const CONTEXT_CHECK_INTERVAL_MS = 1000;
 
@@ -37,11 +38,15 @@ function bootstrap(): void {
 
   // Mirror reminders to the background so notifications fire even when collapsed.
   const stopReminderSync = startReminderSync();
+  // Mirror storage usage so the popup can display it.
+  const stopStatsSync = startStatsSync();
 
-  // Popup → content: expand the sidebar on request.
+  // Popup → content: expand the sidebar (optionally on a specific section).
   const handleMessage = (raw: unknown): void => {
     if (isEnvelope(raw) && raw.message.type === 'OPEN_SIDEBAR') {
-      useUIStore.getState().setCollapsed(false);
+      const ui = useUIStore.getState();
+      ui.setCollapsed(false);
+      if (raw.message.section) ui.setActiveSection(raw.message.section);
     }
   };
   chrome.runtime.onMessage.addListener(handleMessage);
@@ -51,6 +56,7 @@ function bootstrap(): void {
     clearInterval(watchdog);
     detector.stop();
     stopReminderSync();
+    stopStatsSync();
     try {
       chrome.runtime.onMessage.removeListener(handleMessage);
     } catch {
