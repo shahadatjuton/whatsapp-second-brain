@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { deriveDisplayName, parseJidFromDataId } from './strategies';
+import type { ChatContext } from '@/types/models';
+import { decideChatChange, deriveDisplayName, parseJidFromDataId } from './strategies';
 
 describe('parseJidFromDataId', () => {
   it('extracts an individual chat JID', () => {
@@ -35,5 +36,48 @@ describe('deriveDisplayName', () => {
 
   it('unwraps a name-prefixed fallback id', () => {
     expect(deriveDisplayName('name:Alice Smith')).toBe('Alice Smith');
+  });
+});
+
+describe('decideChatChange', () => {
+  const chatA: ChatContext = { chatId: 'a@c.us', chatName: 'Alice' };
+  const chatB: ChatContext = { chatId: 'b@c.us', chatName: 'Bob' };
+
+  it('emits when a chat is first detected', () => {
+    expect(decideChatChange({ conversationOpen: true, context: chatA, lastChatId: null })).toEqual({
+      nextChatId: 'a@c.us',
+      emit: chatA,
+    });
+  });
+
+  it('does NOT clear the chat on a transient resolution miss (the reported bug)', () => {
+    // Conversation is still open, but selectors returned nothing this tick.
+    expect(
+      decideChatChange({ conversationOpen: true, context: null, lastChatId: 'a@c.us' }),
+    ).toBeNull();
+  });
+
+  it('is a no-op when the same chat resolves again', () => {
+    expect(
+      decideChatChange({ conversationOpen: true, context: chatA, lastChatId: 'a@c.us' }),
+    ).toBeNull();
+  });
+
+  it('emits the new chat when switching conversations', () => {
+    expect(
+      decideChatChange({ conversationOpen: true, context: chatB, lastChatId: 'a@c.us' }),
+    ).toEqual({ nextChatId: 'b@c.us', emit: chatB });
+  });
+
+  it('clears to null only when the conversation pane is gone', () => {
+    expect(
+      decideChatChange({ conversationOpen: false, context: null, lastChatId: 'a@c.us' }),
+    ).toEqual({ nextChatId: null, emit: null });
+  });
+
+  it('stays null when no conversation is open and none was active', () => {
+    expect(
+      decideChatChange({ conversationOpen: false, context: null, lastChatId: null }),
+    ).toBeNull();
   });
 });

@@ -92,3 +92,45 @@ export function resolveChatContext(): ChatContext | null {
   const chatName = firstNonNull(NAME_STRATEGIES) ?? deriveDisplayName(chatId);
   return { chatId, chatName };
 }
+
+/**
+ * Is a conversation currently open? WhatsApp mounts the `#main` pane only when a
+ * chat is open; on the intro/landing screen it is absent. This is the reliable
+ * "no chat" signal — far more stable than whether our id/name selectors happen
+ * to resolve on a given tick.
+ */
+export function isConversationOpen(): boolean {
+  return document.querySelector('#main') != null;
+}
+
+export interface DetectionState {
+  conversationOpen: boolean;
+  context: ChatContext | null;
+  lastChatId: string | null;
+}
+
+export interface DetectionChange {
+  nextChatId: string | null;
+  emit: ChatContext | null;
+}
+
+/**
+ * Decide whether the active chat actually changed (pure — no DOM).
+ *
+ * Detection is deliberately *sticky*: if a conversation is open but our
+ * selectors didn't resolve this tick (WhatsApp re-renders constantly), we return
+ * `null` (no change) rather than clearing the active chat. The chat is only
+ * cleared to `null` when the conversation pane is genuinely gone.
+ */
+export function decideChatChange({
+  conversationOpen,
+  context,
+  lastChatId,
+}: DetectionState): DetectionChange | null {
+  if (!conversationOpen) {
+    return lastChatId === null ? null : { nextChatId: null, emit: null };
+  }
+  if (!context) return null; // Transient resolution miss — keep the current chat.
+  if (context.chatId === lastChatId) return null;
+  return { nextChatId: context.chatId, emit: context };
+}

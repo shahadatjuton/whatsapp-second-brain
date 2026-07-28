@@ -1,5 +1,5 @@
 import { debounce, type Debounced } from '@/utils/debounce';
-import { resolveChatContext } from './strategies';
+import { decideChatChange, isConversationOpen, resolveChatContext } from './strategies';
 import type { ChatChangeHandler } from './types';
 
 const DEFAULT_DEBOUNCE_MS = 250;
@@ -56,10 +56,13 @@ export class ChatDetector {
   }
 
   private detect(): void {
-    const context = resolveChatContext();
-    const chatId = context?.chatId ?? null;
-    if (chatId === this.lastChatId) return;
-    this.lastChatId = chatId;
-    this.onChange(context);
+    const change = decideChatChange({
+      conversationOpen: isConversationOpen(),
+      context: resolveChatContext(),
+      lastChatId: this.lastChatId,
+    });
+    if (!change) return;
+    this.lastChatId = change.nextChatId;
+    this.onChange(change.emit);
   }
 }
