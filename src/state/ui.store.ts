@@ -32,6 +32,8 @@ interface UIState {
   setSidebarWidth: (width: number) => void;
   setCollapsed: (collapsed: boolean) => void;
   toggleCollapsed: () => void;
+  /** Reset presentation preferences to defaults (keeps the panel open). */
+  resetSettings: () => void;
 }
 
 /**
@@ -54,6 +56,12 @@ export const useUIStore = create<UIState>()(
       setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
       setCollapsed: (collapsed) => set({ collapsed }),
       toggleCollapsed: () => set((state) => ({ collapsed: !state.collapsed })),
+      resetSettings: () =>
+        set({
+          theme: getInitialTheme(),
+          sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
+          activeSection: 'settings',
+        }),
     }),
     {
       name: 'wa-second-brain:ui',

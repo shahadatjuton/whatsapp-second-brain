@@ -1,23 +1,226 @@
-import { ShieldCheck } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
+import {
+  Download,
+  Moon,
+  RotateCcw,
+  ShieldCheck,
+  Sun,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { cn } from '@/components/ui/cn';
+import { useStorageUsage } from '@/hooks/useStorageUsage';
+import {
+  deleteAllData,
+  exportAllData,
+  importData,
+} from '@/services/data-transfer.service';
+import { useUIStore } from '@/state/ui.store';
+import type { Theme } from '@/types/enums';
+import { dayjs } from '@/utils/date';
+import { downloadJson } from '@/utils/download';
+import { formatBytes } from '@/utils/format';
+import pkg from '../../../package.json';
 
-/**
- * Settings section — placeholder shell. Export/import, delete-all, reset and
- * storage usage are implemented in Milestone 8. The privacy statement is shown
- * now because it is a core promise of the product.
- */
-export function SettingsSection(): JSX.Element {
+type Status = { tone: 'success' | 'error'; message: string } | null;
+
+const THEME_OPTIONS: ReadonlyArray<{ value: Theme; label: string; icon: typeof Sun }> = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+];
+
+function Group({ title, children }: { title: string; children: ReactNode }): JSX.Element {
   return (
-    <div className="p-4">
-      <div className="flex items-start gap-3 rounded-card bg-brand/5 p-4">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden />
-        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-          This extension stores everything locally inside your browser. No data is sent to any
-          server.
-        </p>
+    <section className="space-y-2">
+      <h2 className="px-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        {title}
+      </h2>
+      <div className="rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+        {children}
       </div>
-      <p className="mt-4 text-center text-[11px] text-slate-400">
-        More settings coming soon.
-      </p>
+    </section>
+  );
+}
+
+/** Settings: appearance, data export/import, delete-all, reset, storage, about. */
+export function SettingsSection(): JSX.Element {
+  const theme = useUIStore((state) => state.theme);
+  const setTheme = useUIStore((state) => state.setTheme);
+  const resetSettings = useUIStore((state) => state.resetSettings);
+  const usage = useStorageUsage();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<Status>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const handleExport = async (): Promise<void> => {
+    const result = await exportAllData();
+    if (!result.ok) {
+      setStatus({ tone: 'error', message: 'Export failed — storage unavailable.' });
+      return;
+    }
+    downloadJson(`whatsapp-second-brain-${dayjs().format('YYYY-MM-DD')}.json`, result.value);
+    setStatus({ tone: 'success', message: 'Backup exported to your downloads.' });
+  };
+
+  const handleImportFile = async (file: File): Promise<void> => {
+    const text = await file.text();
+    const result = await importData(text);
+    if (!result.ok) {
+      setStatus({ tone: 'error', message: result.error.message });
+      return;
+    }
+    const { chats, notes, todos, reminders, skipped } = result.value;
+    const imported = chats + notes + todos + reminders;
+    setStatus({
+      tone: 'success',
+      message: `Imported ${imported} item${imported === 1 ? '' : 's'}${
+        skipped ? ` (${skipped} skipped)` : ''
+      }.`,
+    });
+  };
+
+  const handleDeleteAll = async (): Promise<void> => {
+    const result = await deleteAllData();
+    setStatus(
+      result.ok
+        ? { tone: 'success', message: 'All data deleted.' }
+        : { tone: 'error', message: 'Delete failed — please try again.' },
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-4 p-3">
+      <Group title="Appearance">
+        <div className="flex rounded-card bg-surface-muted p-0.5 dark:bg-surface-dark">
+          {THEME_OPTIONS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={theme === value}
+              onClick={() => setTheme(value)}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 rounded-[0.7rem] py-1.5 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+                theme === value
+                  ? 'bg-white text-slate-800 shadow-sm dark:bg-surface-dark-muted dark:text-slate-100'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
+              )}
+            >
+              <Icon size={14} aria-hidden />
+              {label}
+            </button>
+          ))}
+        </div>
+      </Group>
+
+      <Group title="Data">
+        <div className="flex flex-col gap-2">
+          <Button variant="secondary" size="sm" onClick={() => void handleExport()}>
+            <Download size={15} aria-hidden />
+            Export data
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+            <Upload size={15} aria-hidden />
+            Import data
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) void handleImportFile(file);
+            }}
+          />
+          <Button variant="ghost" size="sm" onClick={() => setConfirmReset(true)}>
+            <RotateCcw size={15} aria-hidden />
+            Reset settings
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
+            <Trash2 size={15} aria-hidden />
+            Delete all data
+          </Button>
+        </div>
+
+        {status ? (
+          <p
+            className={cn(
+              'mt-2 text-center text-[11px]',
+              status.tone === 'success' ? 'text-brand-fg' : 'text-red-500',
+            )}
+            role="status"
+          >
+            {status.message}
+          </p>
+        ) : null}
+      </Group>
+
+      <Group title="Storage">
+        {usage && usage.ok ? (
+          <dl className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
+            <div className="flex justify-between">
+              <dt>Notes</dt>
+              <dd>{usage.value.counts.notes}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Todos</dt>
+              <dd>{usage.value.counts.todos}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Reminders</dt>
+              <dd>{usage.value.counts.reminders}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Chats tracked</dt>
+              <dd>{usage.value.counts.chats}</dd>
+            </div>
+            {usage.value.bytes != null ? (
+              <div className="flex justify-between border-t border-black/5 pt-1 font-medium text-slate-700 dark:border-white/10 dark:text-slate-100">
+                <dt>Approx. size</dt>
+                <dd>{formatBytes(usage.value.bytes)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        ) : (
+          <p className="text-xs text-slate-400">Calculating…</p>
+        )}
+      </Group>
+
+      <Group title="About">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand" aria-hidden />
+          <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+            This extension stores everything locally inside your browser. No data is sent to any
+            server.
+          </p>
+        </div>
+        <p className="mt-3 text-right text-[11px] text-slate-400">v{pkg.version}</p>
+      </Group>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete all data?"
+        description="This permanently removes every note, todo and reminder across all chats. This cannot be undone."
+        confirmLabel="Delete everything"
+        danger
+        onConfirm={() => void handleDeleteAll()}
+        onClose={() => setConfirmDelete(false)}
+      />
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset settings?"
+        description="Resets theme and sidebar width to their defaults. Your notes, todos and reminders are kept."
+        confirmLabel="Reset"
+        onConfirm={() => {
+          resetSettings();
+          setStatus({ tone: 'success', message: 'Settings reset to defaults.' });
+        }}
+        onClose={() => setConfirmReset(false)}
+      />
     </div>
   );
 }

@@ -48,3 +48,17 @@ export const reminderSchema: z.ZodType<Reminder> = z.object({
   completed: z.boolean(),
   createdAt: timestamp,
 });
+
+/**
+ * Shape of an exported/imported backup. Table arrays are validated leniently
+ * (as `unknown[]`) at the boundary so a single malformed row doesn't reject the
+ * whole file — the importer validates each record individually and reports skips.
+ */
+export const importBundleSchema = z.object({
+  data: z.object({
+    chats: z.array(z.unknown()).default([]),
+    notes: z.array(z.unknown()).default([]),
+    todos: z.array(z.unknown()).default([]),
+    reminders: z.array(z.unknown()).default([]),
+  }),
+});
