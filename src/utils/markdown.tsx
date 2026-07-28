@@ -130,9 +130,12 @@ function parseInline(text: string, keyBase: string): ReactNode[] {
   let cursor = 0;
   let key = 0;
   let match: RegExpExecArray | null;
-  INLINE.lastIndex = 0;
+  // A fresh regex per call: `parseInline` recurses for bold/italic, and a shared
+  // global regex's `lastIndex` would be clobbered by the recursive call, causing
+  // the outer loop to restart from 0 forever (a tab-freezing infinite loop).
+  const inline = new RegExp(INLINE.source, 'g');
 
-  while ((match = INLINE.exec(text)) !== null) {
+  while ((match = inline.exec(text)) !== null) {
     if (match.index > cursor) nodes.push(text.slice(cursor, match.index));
     const token = match[0];
     const id = `${keyBase}-${key++}`;

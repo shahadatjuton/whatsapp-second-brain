@@ -2,17 +2,25 @@ import { chatsService } from '@/services/chats.service';
 import { useChatStore } from '@/state/chat.store';
 import { useUIStore } from '@/state/ui.store';
 import { isEnvelope } from '@/types/messages';
+import { isExtensionContextValid } from '@/utils/extension';
 import { logger } from '@/utils/logger';
 import { sendToBackground } from './bridge';
 import { ChatDetector } from './chat-detector/ChatDetector';
 import { mountSidebar } from './mount';
 
+const CONTEXT_CHECK_INTERVAL_MS = 1000;
+
 /**
  * Content script entry point — runs in the WhatsApp Web page context.
  *
- * Milestone 4: mount the sidebar, then run the ChatDetector. On every chat
- * change we (1) update the shared chat store the sidebar reads, (2) upsert the
- * chat row in IndexedDB, and (3) notify the background worker.
+ * Mounts the sidebar and runs the ChatDetector. On every chat change we
+ * (1) update the shared chat store the sidebar reads, (2) upsert the chat row in
+ * IndexedDB, and (3) notify the background worker.
+ *
+ * A watchdog tears everything down if the extension context is invalidated
+ * (extension reloaded/updated), so the orphaned script stops touching `chrome.*`
+ * and no longer throws "Extension context invalidated". The user just needs to
+ * reload the WhatsApp tab to get a fresh script.
  */
 function bootstrap(): void {
   mountSidebar();
@@ -27,11 +35,24 @@ function bootstrap(): void {
   detector.start();
 
   // Popup → content: expand the sidebar on request.
-  chrome.runtime.onMessage.addListener((raw) => {
+  const handleMessage = (raw: unknown): void => {
     if (isEnvelope(raw) && raw.message.type === 'OPEN_SIDEBAR') {
       useUIStore.getState().setCollapsed(false);
     }
-  });
+  };
+  chrome.runtime.onMessage.addListener(handleMessage);
+
+  const watchdog = setInterval(() => {
+    if (isExtensionContextValid()) return;
+    clearInterval(watchdog);
+    detector.stop();
+    try {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    } catch {
+      // Context already gone — nothing to clean up.
+    }
+    logger.info('Extension context invalidated — content script stopped. Reload the tab to reconnect.');
+  }, CONTEXT_CHECK_INTERVAL_MS);
 
   logger.info('Content script initialised on WhatsApp Web.');
 }

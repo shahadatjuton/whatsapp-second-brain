@@ -1,5 +1,6 @@
+import { isValidElement, type ReactElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import { parseBlocks, sanitizeUrl, type Block } from './markdown';
+import { parseBlocks, renderMarkdown, sanitizeUrl, type Block } from './markdown';
 
 describe('sanitizeUrl', () => {
   it('allows http, https and mailto', () => {
@@ -50,5 +51,21 @@ describe('parseBlocks', () => {
   it('parses blockquotes', () => {
     const blocks = parseBlocks('> quoted');
     expect(blocks).toEqual<Block[]>([{ type: 'quote', text: 'quoted' }]);
+  });
+});
+
+describe('renderMarkdown (inline recursion)', () => {
+  // Regression guard: emphasis recurses into parseInline. A shared global regex
+  // would clobber lastIndex and loop forever — this test would time out.
+  it('renders bold, italic, code and links without hanging', () => {
+    const nodes = renderMarkdown('**bold** and *italic* and _also_ and `code` and [x](https://a.com)');
+    expect(Array.isArray(nodes)).toBe(true);
+    const [paragraph] = nodes as ReactElement[];
+    expect(isValidElement(paragraph)).toBe(true);
+  });
+
+  it('handles adjacent and repeated emphasis tokens', () => {
+    const nodes = renderMarkdown('**a****b** *c* *d*') as ReactElement[];
+    expect(nodes).toHaveLength(1);
   });
 });
