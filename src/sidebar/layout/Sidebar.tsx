@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useUIStore } from '@/state/ui.store';
+import { ActiveChatBar } from './ActiveChatBar';
 import { Header } from './Header';
 import { ResizeHandle } from './ResizeHandle';
 import { SectionOutlet } from './SectionOutlet';
@@ -25,6 +26,7 @@ export function Sidebar(): JSX.Element {
     >
       <ResizeHandle />
       <Header />
+      <ActiveChatBar />
       <main className="flex-1 overflow-y-auto">
         <SectionOutletFromStore />
       </main>

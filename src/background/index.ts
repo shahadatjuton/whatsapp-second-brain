@@ -1,15 +1,17 @@
+import { isEnvelope } from '@/types/messages';
 import { logger } from '@/utils/logger';
 
 /**
  * Background service worker (Manifest V3) entry point.
  *
- * Responsibilities (fully implemented in later milestones):
- *  - Reminder scheduling via `chrome.alarms`.
- *  - Firing `chrome.notifications` when a reminder is due.
- *  - Handling lifecycle events (install/update) and cross-context messages.
+ * Responsibilities:
+ *  - Lifecycle events (install/update/startup).
+ *  - Receiving cross-context messages from the content script.
+ *  - Reminder scheduling via `chrome.alarms` + `chrome.notifications` (M7).
  *
- * For Milestone 1 this only wires up install/startup logging so the worker
- * registers cleanly and the extension loads without errors.
+ * NOTE: the service worker runs on the EXTENSION origin, so it cannot read the
+ * page-origin IndexedDB where notes/todos/reminders live. Reminder data will be
+ * mirrored to `chrome.storage.local` by the content script in M7.
  */
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -18,6 +20,19 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 chrome.runtime.onStartup.addListener(() => {
   logger.info('Service worker started.');
+});
+
+chrome.runtime.onMessage.addListener((raw) => {
+  if (!isEnvelope(raw)) return;
+
+  switch (raw.message.type) {
+    case 'CHAT_OPENED':
+      // Bookkeeping hook — reminder rescheduling attaches here in M7.
+      logger.info('Chat opened:', raw.message.payload.chatName);
+      break;
+    default:
+      break;
+  }
 });
 
 export {};
