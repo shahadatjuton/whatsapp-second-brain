@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base typography for the extension surfaces. Kept minimal — Tailwind utilities
+   handle the rest. This stylesheet is injected into the sidebar's shadow root so
+   it never leaks into (or inherits from) WhatsApp Web. */
+:host,
+:root {
+  font-family: theme('fontFamily.sans');
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
