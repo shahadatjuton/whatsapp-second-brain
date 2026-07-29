@@ -40,17 +40,18 @@ function getMain(): Element | null {
   return document.querySelector('#main');
 }
 
-/** Priority 1: JID parsed from any rendered message in the open chat. */
-const chatIdFromMessages: Strategy<string> = () => {
-  const main = getMain();
-  if (!main) return null;
+/**
+ * Read the open chat's message ids: the first parseable JID, and whether any
+ * `[data-id]` message nodes exist at all.
+ */
+function readMessages(main: Element): { jid: string | null; hasMessages: boolean } {
   const nodes = main.querySelectorAll('[data-id]');
   for (const node of nodes) {
     const jid = parseJidFromDataId(node.getAttribute('data-id') ?? '');
-    if (jid) return jid;
+    if (jid) return { jid, hasMessages: true };
   }
-  return null;
-};
+  return { jid: null, hasMessages: nodes.length > 0 };
+}
 
 /**
  * Reads the conversation title from the chat header. Tries several shapes since
@@ -89,36 +90,25 @@ export function collectDetectionDiagnostics(): string {
 }
 
 /**
- * Priority 2 (fallback): a `name:`-prefixed id derived from the header title,
- * used only when no JID is available. Prefixed so it can never collide with a
- * real JID.
- */
-const chatIdFromHeaderName: Strategy<string> = () => {
-  const name = chatNameFromHeader();
-  return name ? `name:${name}` : null;
-};
-
-const ID_STRATEGIES: ReadonlyArray<Strategy<string>> = [chatIdFromMessages, chatIdFromHeaderName];
-const NAME_STRATEGIES: ReadonlyArray<Strategy<string>> = [chatNameFromHeader];
-
-function firstNonNull<T>(strategies: ReadonlyArray<Strategy<T>>): T | null {
-  for (const strategy of strategies) {
-    const value = strategy();
-    if (value !== null) return value;
-  }
-  return null;
-}
-
-/**
- * Resolve the currently open conversation, or `null` when no chat is open
- * (e.g. the "start page"). A chat requires an id; the name falls back to a
- * derived label.
+ * Resolve the currently open conversation, or `null` when it can't yet be
+ * identified.
+ *
+ * The id is ALWAYS the stable JID whenever the chat has messages. A name-based
+ * id is used only for a genuinely empty conversation (no messages at all). If
+ * messages exist but no JID parsed — a selector/format problem — we return
+ * `null` rather than inventing a name-based id, so a chat that has a JID can
+ * never end up stored under two different ids (which is what orphaned notes).
  */
 export function resolveChatContext(): ChatContext | null {
-  const chatId = firstNonNull(ID_STRATEGIES);
-  if (!chatId) return null;
-  const chatName = firstNonNull(NAME_STRATEGIES) ?? deriveDisplayName(chatId);
-  return { chatId, chatName };
+  const main = getMain();
+  if (!main) return null;
+
+  const name = chatNameFromHeader();
+  const { jid, hasMessages } = readMessages(main);
+
+  if (jid) return { chatId: jid, chatName: name ?? deriveDisplayName(jid) };
+  if (!hasMessages && name) return { chatId: `name:${name}`, chatName: name };
+  return null;
 }
 
 /**

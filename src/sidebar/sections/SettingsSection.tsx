@@ -1,5 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import {
+  ChevronRight,
   Download,
   Moon,
   RotateCcw,
@@ -22,9 +23,16 @@ import type { Theme } from '@/types/enums';
 import { dayjs } from '@/utils/date';
 import { downloadJson } from '@/utils/download';
 import { formatBytes } from '@/utils/format';
+import { AllDataBrowser, type DataTab } from './settings/AllDataBrowser';
 import pkg from '../../../package.json';
 
 type Status = { tone: 'success' | 'error'; message: string } | null;
+
+const BROWSE_ROWS: ReadonlyArray<{ key: DataTab; label: string }> = [
+  { key: 'notes', label: 'Notes' },
+  { key: 'todos', label: 'Todos' },
+  { key: 'reminders', label: 'Reminders' },
+];
 
 const THEME_OPTIONS: ReadonlyArray<{ value: Theme; label: string; icon: typeof Sun }> = [
   { value: 'light', label: 'Light', icon: Sun },
@@ -54,6 +62,7 @@ export function SettingsSection(): JSX.Element {
   const [status, setStatus] = useState<Status>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [browserTab, setBrowserTab] = useState<DataTab | null>(null);
 
   const handleExport = async (): Promise<void> => {
     const result = await exportAllData();
@@ -161,30 +170,41 @@ export function SettingsSection(): JSX.Element {
 
       <Group title="Storage">
         {usage && usage.ok ? (
-          <dl className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
-            <div className="flex justify-between">
-              <dt>Notes</dt>
-              <dd>{usage.value.counts.notes}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt>Todos</dt>
-              <dd>{usage.value.counts.todos}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt>Reminders</dt>
-              <dd>{usage.value.counts.reminders}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt>Chats tracked</dt>
-              <dd>{usage.value.counts.chats}</dd>
+          <div className="text-xs text-slate-600 dark:text-slate-300">
+            {BROWSE_ROWS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setBrowserTab(key)}
+                className="group flex w-full items-center justify-between rounded-lg px-1 py-1 transition-colors hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand dark:hover:bg-white/5"
+              >
+                <span>{label}</span>
+                <span className="flex items-center gap-1">
+                  <span className="font-medium text-slate-700 dark:text-slate-100">
+                    {usage.value.counts[key]}
+                  </span>
+                  <ChevronRight
+                    size={13}
+                    className="text-slate-300 transition-colors group-hover:text-slate-500"
+                    aria-hidden
+                  />
+                </span>
+              </button>
+            ))}
+            <div className="flex justify-between px-1 py-1">
+              <span>Chats tracked</span>
+              <span>{usage.value.counts.chats}</span>
             </div>
             {usage.value.bytes != null ? (
-              <div className="flex justify-between border-t border-black/5 pt-1 font-medium text-slate-700 dark:border-white/10 dark:text-slate-100">
-                <dt>Approx. size</dt>
-                <dd>{formatBytes(usage.value.bytes)}</dd>
+              <div className="mt-1 flex justify-between border-t border-black/5 px-1 pt-2 font-medium text-slate-700 dark:border-white/10 dark:text-slate-100">
+                <span>Approx. size</span>
+                <span>{formatBytes(usage.value.bytes)}</span>
               </div>
             ) : null}
-          </dl>
+            <p className="mt-2 px-1 text-[11px] text-slate-400">
+              Tap a row to see every item and which chat it belongs to.
+            </p>
+          </div>
         ) : (
           <p className="text-xs text-slate-400">Calculating…</p>
         )}
@@ -220,6 +240,12 @@ export function SettingsSection(): JSX.Element {
           setStatus({ tone: 'success', message: 'Settings reset to defaults.' });
         }}
         onClose={() => setConfirmReset(false)}
+      />
+
+      <AllDataBrowser
+        open={browserTab !== null}
+        initialTab={browserTab ?? 'notes'}
+        onClose={() => setBrowserTab(null)}
       />
     </div>
   );
