@@ -7,3 +7,4 @@ dist-zip
 .env.*
 *.log
 .vite
+test-data-*.json
