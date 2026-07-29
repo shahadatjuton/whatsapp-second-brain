@@ -15,13 +15,19 @@ describe('parseJidFromDataId', () => {
     );
   });
 
+  it('extracts newer JID domains (lid, newsletter)', () => {
+    expect(parseJidFromDataId('false_12345678@lid_3EB0')).toBe('12345678@lid');
+    expect(parseJidFromDataId('false_120363000@newsletter_ABC')).toBe('120363000@newsletter');
+  });
+
   it('returns null when no JID-like segment is present', () => {
     expect(parseJidFromDataId('some-random-id')).toBeNull();
     expect(parseJidFromDataId('')).toBeNull();
   });
 
-  it('rejects segments with an unknown domain', () => {
+  it('rejects email-like strings (must start with a digit)', () => {
     expect(parseJidFromDataId('false_someone@example.com_123')).toBeNull();
+    expect(parseJidFromDataId('reply_user@gmail.com_x')).toBeNull();
   });
 });
 

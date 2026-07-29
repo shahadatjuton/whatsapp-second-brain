@@ -1,6 +1,20 @@
+import { logger } from '@/utils/logger';
 import { debounce, type Debounced } from '@/utils/debounce';
-import { decideChatChange, isConversationOpen, resolveChatContext } from './strategies';
+import {
+  collectDetectionDiagnostics,
+  decideChatChange,
+  isConversationOpen,
+  resolveChatContext,
+} from './strategies';
 import type { ChatChangeHandler } from './types';
+
+const UNRESOLVED_WARN_INTERVAL_MS = 5000;
+/**
+ * How long `#main` must be continuously absent before we treat it as "no chat
+ * open". WhatsApp briefly remounts `#main` when switching conversations; without
+ * this grace the active chat would flicker away and its data disappear.
+ */
+const NO_CHAT_GRACE_MS = 900;
 
 const DEFAULT_DEBOUNCE_MS = 250;
 /**
@@ -26,6 +40,8 @@ export class ChatDetector {
   private observer: MutationObserver | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private lastChatId: string | null = null;
+  private lastUnresolvedWarn = 0;
+  private noChatSince: number | null = null;
   private readonly scan: Debounced<[]>;
 
   public constructor(
@@ -53,16 +69,39 @@ export class ChatDetector {
       this.pollTimer = null;
     }
     this.lastChatId = null;
+    this.noChatSince = null;
   }
 
   private detect(): void {
-    const change = decideChatChange({
-      conversationOpen: isConversationOpen(),
-      context: resolveChatContext(),
-      lastChatId: this.lastChatId,
-    });
+    const conversationOpen = isConversationOpen();
+
+    // Tolerate a brief absence of `#main` (WhatsApp remounts it on chat switch)
+    // so the active chat — and its notes/todos — doesn't flicker away.
+    if (!conversationOpen) {
+      if (this.noChatSince === null) this.noChatSince = Date.now();
+      if (Date.now() - this.noChatSince < NO_CHAT_GRACE_MS) return;
+    } else {
+      this.noChatSince = null;
+    }
+
+    const context = resolveChatContext();
+
+    // A chat is open but we couldn't identify it — surface diagnostics
+    // (throttled) so a broken selector on a new WhatsApp build is easy to spot.
+    if (conversationOpen && !context) {
+      const now = Date.now();
+      if (now - this.lastUnresolvedWarn > UNRESOLVED_WARN_INTERVAL_MS) {
+        this.lastUnresolvedWarn = now;
+        logger.warn('Could not resolve the open chat.', collectDetectionDiagnostics());
+      }
+    }
+
+    const change = decideChatChange({ conversationOpen, context, lastChatId: this.lastChatId });
     if (!change) return;
     this.lastChatId = change.nextChatId;
+    if (change.emit) {
+      logger.info('Active chat:', change.emit.chatId, `(${change.emit.chatName})`);
+    }
     this.onChange(change.emit);
   }
 }

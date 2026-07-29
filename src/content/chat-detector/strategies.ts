@@ -21,8 +21,11 @@ export function parseJidFromDataId(dataId: string): string | null {
   if (!dataId) return null;
   const segment = dataId.split('_').find((part) => part.includes('@'));
   if (!segment) return null;
-  // Basic sanity check: a WhatsApp JID ends in a known domain.
-  return /@(c\.us|g\.us|lid|s\.whatsapp\.net)$/.test(segment) ? segment : null;
+  // A WhatsApp JID is `<id>@<domain>` — e.g. 12..@c.us, ..@g.us, ..@lid,
+  // ..@newsletter, ..@broadcast. We stay lenient about the domain so WhatsApp
+  // changes don't break detection, but require a leading digit so message text
+  // or email-like strings can never be mistaken for a JID.
+  return /^\d[\w-]*@[\w.-]+$/.test(segment) ? segment : null;
 }
 
 /** Human-friendly fallback name when the header title can't be read. */
@@ -49,16 +52,41 @@ const chatIdFromMessages: Strategy<string> = () => {
   return null;
 };
 
-/** Reads the conversation title from the chat header. */
+/**
+ * Reads the conversation title from the chat header. Tries several shapes since
+ * WhatsApp's markup shifts — but always within `#main header`, so it's the open
+ * conversation's title (never a chat-list entry).
+ */
 const chatNameFromHeader: Strategy<string> = () => {
   const header = document.querySelector('#main header');
   if (!header) return null;
-  const titled = header.querySelector<HTMLElement>('span[title]');
-  const title = titled?.getAttribute('title')?.trim();
-  if (title) return title;
-  const text = titled?.textContent?.trim();
-  return text && text.length > 0 ? text : null;
+  const candidates = [
+    header.querySelector<HTMLElement>('span[dir="auto"][title]'),
+    header.querySelector<HTMLElement>('span[title]'),
+    header.querySelector<HTMLElement>('span[dir="auto"]'),
+  ];
+  for (const element of candidates) {
+    const title = element?.getAttribute('title')?.trim();
+    if (title) return title;
+    const text = element?.textContent?.trim();
+    if (text && text.length > 0) return text;
+  }
+  return null;
 };
+
+/**
+ * Diagnostic snapshot of what the detector currently sees — logged (throttled)
+ * when a conversation is open but no id could be resolved, so detection issues
+ * on a new WhatsApp build can be reported and fixed quickly.
+ */
+export function collectDetectionDiagnostics(): string {
+  const main = getMain();
+  if (!main) return 'no #main element';
+  const nodes = main.querySelectorAll('[data-id]');
+  const sample = nodes.length > 0 ? nodes[0]?.getAttribute('data-id') : null;
+  const headerTitle = document.querySelector('#main header span[title]')?.getAttribute('title');
+  return `[data-id] nodes: ${nodes.length}, sample: ${sample ?? 'none'}, header title: ${headerTitle ?? 'none'}`;
+}
 
 /**
  * Priority 2 (fallback): a `name:`-prefixed id derived from the header title,
