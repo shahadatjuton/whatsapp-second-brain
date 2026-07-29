@@ -33,7 +33,7 @@ const TABS: ReadonlyArray<{ id: DataTab; label: string; icon: LucideIcon }> = [
 /** One card representing a stored item, with a chat-scoped delete. */
 function ItemRow({ children, onDelete }: { children: ReactNode; onDelete: () => void }): JSX.Element {
   return (
-    <li className="flex items-start justify-between gap-2 rounded-card border border-black/5 bg-white p-2.5 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+    <li className="cv-list-item flex items-start justify-between gap-2 rounded-card border border-black/5 bg-white p-2.5 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
       <div className="min-w-0 flex-1">{children}</div>
       <DeleteButton onDelete={onDelete} />
     </li>

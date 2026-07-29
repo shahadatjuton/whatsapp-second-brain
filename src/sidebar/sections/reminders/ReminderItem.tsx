@@ -23,7 +23,7 @@ export function ReminderItem({ reminder }: ReminderItemProps): JSX.Element {
   }, [confirmingDelete]);
 
   return (
-    <li className="flex items-start gap-2.5 rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+    <li className="cv-list-item flex items-start gap-2.5 rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
       <div className="pt-0.5">
         <Checkbox
           checked={reminder.completed}

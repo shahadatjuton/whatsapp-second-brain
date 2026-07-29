@@ -11,3 +11,13 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+@layer utilities {
+  /* Native windowing (Chromium): skip layout/paint for off-screen list items so
+     lists of 10k+ notes/todos stay smooth. `contain-intrinsic-size` reserves an
+     estimated height for items that haven't been rendered yet. */
+  .cv-list-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 4rem;
+  }
+}

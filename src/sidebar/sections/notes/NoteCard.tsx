@@ -65,7 +65,7 @@ export function NoteCard({ note, autoFocus = false }: NoteCardProps): JSX.Elemen
   };
 
   return (
-    <li className="rounded-card border border-black/5 bg-white p-3 shadow-soft transition-shadow focus-within:border-brand/40 dark:border-white/10 dark:bg-surface-dark-muted">
+    <li className="cv-list-item rounded-card border border-black/5 bg-white p-3 shadow-soft transition-shadow focus-within:border-brand/40 dark:border-white/10 dark:bg-surface-dark-muted">
       {isPreview ? (
         <div className="min-h-[2.75rem] space-y-2 text-sm text-slate-800 dark:text-slate-100">
           {content.trim() ? (

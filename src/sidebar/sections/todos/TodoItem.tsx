@@ -66,7 +66,7 @@ export function TodoItem({ todo }: TodoItemProps): JSX.Element {
 
   if (isEditing) {
     return (
-      <li className="rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+      <li className="cv-list-item rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
         <form onSubmit={onSubmit} className="flex flex-col gap-2">
           <div>
             <Input placeholder="Task title" aria-label="Task title" {...register('title')} />
@@ -106,7 +106,7 @@ export function TodoItem({ todo }: TodoItemProps): JSX.Element {
   }
 
   return (
-    <li className="rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+    <li className="cv-list-item rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
       <div className="flex items-start gap-2.5">
         <div className="pt-0.5">
           <Checkbox

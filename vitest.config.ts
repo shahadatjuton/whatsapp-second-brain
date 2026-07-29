@@ -8,8 +8,10 @@ export default defineConfig({
     },
   },
   test: {
+    // Node by default (repository/service tests); component tests opt into jsdom
+    // via a `// @vitest-environment jsdom` directive at the top of the file.
     environment: 'node',
     setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });
