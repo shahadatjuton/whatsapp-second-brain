@@ -26,12 +26,22 @@ interface UIState {
   /** Whether the sidebar is collapsed to its launcher pill. */
   collapsed: boolean;
 
+  /** Privacy-screen (blur-until-hover) settings for WhatsApp's own content. */
+  blurEnabled: boolean;
+  blurNames: boolean;
+  blurMessages: boolean;
+  blurMedia: boolean;
+
   setActiveSection: (section: Section) => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setSidebarWidth: (width: number) => void;
   setCollapsed: (collapsed: boolean) => void;
   toggleCollapsed: () => void;
+  setBlurEnabled: (value: boolean) => void;
+  setBlurNames: (value: boolean) => void;
+  setBlurMessages: (value: boolean) => void;
+  setBlurMedia: (value: boolean) => void;
   /** Reset presentation preferences to defaults (keeps the panel open). */
   resetSettings: () => void;
 }
@@ -49,6 +59,10 @@ export const useUIStore = create<UIState>()(
       theme: getInitialTheme(),
       sidebarWidth: SIDEBAR_DEFAULT_WIDTH,
       collapsed: true,
+      blurEnabled: false,
+      blurNames: true,
+      blurMessages: true,
+      blurMedia: true,
 
       setActiveSection: (activeSection) => set({ activeSection }),
       setTheme: (theme) => set({ theme }),
@@ -56,6 +70,10 @@ export const useUIStore = create<UIState>()(
       setSidebarWidth: (width) => set({ sidebarWidth: clampSidebarWidth(width) }),
       setCollapsed: (collapsed) => set({ collapsed }),
       toggleCollapsed: () => set((state) => ({ collapsed: !state.collapsed })),
+      setBlurEnabled: (blurEnabled) => set({ blurEnabled }),
+      setBlurNames: (blurNames) => set({ blurNames }),
+      setBlurMessages: (blurMessages) => set({ blurMessages }),
+      setBlurMedia: (blurMedia) => set({ blurMedia }),
       resetSettings: () =>
         set({
           theme: getInitialTheme(),
@@ -71,6 +89,10 @@ export const useUIStore = create<UIState>()(
         theme: state.theme,
         sidebarWidth: state.sidebarWidth,
         activeSection: state.activeSection,
+        blurEnabled: state.blurEnabled,
+        blurNames: state.blurNames,
+        blurMessages: state.blurMessages,
+        blurMedia: state.blurMedia,
       }),
     },
   ),

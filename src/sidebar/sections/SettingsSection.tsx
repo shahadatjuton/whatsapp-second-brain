@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Toggle } from '@/components/ui/Toggle';
 import { cn } from '@/components/ui/cn';
 import { useStorageUsage } from '@/hooks/useStorageUsage';
 import {
@@ -57,6 +58,14 @@ export function SettingsSection(): JSX.Element {
   const theme = useUIStore((state) => state.theme);
   const setTheme = useUIStore((state) => state.setTheme);
   const resetSettings = useUIStore((state) => state.resetSettings);
+  const blurEnabled = useUIStore((state) => state.blurEnabled);
+  const blurNames = useUIStore((state) => state.blurNames);
+  const blurMessages = useUIStore((state) => state.blurMessages);
+  const blurMedia = useUIStore((state) => state.blurMedia);
+  const setBlurEnabled = useUIStore((state) => state.setBlurEnabled);
+  const setBlurNames = useUIStore((state) => state.setBlurNames);
+  const setBlurMessages = useUIStore((state) => state.setBlurMessages);
+  const setBlurMedia = useUIStore((state) => state.setBlurMedia);
   const usage = useStorageUsage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>(null);
@@ -122,6 +131,42 @@ export function SettingsSection(): JSX.Element {
             </button>
           ))}
         </div>
+      </Group>
+
+      <Group title="Privacy screen">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-700 dark:text-slate-100">
+              Blur sensitive content
+            </p>
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              Blurs WhatsApp names, messages &amp; images. Hover to reveal — great for
+              screen-sharing.
+            </p>
+          </div>
+          <Toggle
+            checked={blurEnabled}
+            onChange={setBlurEnabled}
+            label="Blur sensitive content"
+          />
+        </div>
+
+        {blurEnabled ? (
+          <div className="mt-3 space-y-2.5 border-t border-black/5 pt-3 dark:border-white/10">
+            {(
+              [
+                ['Contact names', blurNames, setBlurNames],
+                ['Messages', blurMessages, setBlurMessages],
+                ['Images & avatars', blurMedia, setBlurMedia],
+              ] as const
+            ).map(([label, value, setValue]) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-xs text-slate-600 dark:text-slate-300">{label}</span>
+                <Toggle checked={value} onChange={setValue} label={label} />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </Group>
 
       <Group title="Data">

@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger';
 import { sendToBackground } from './bridge';
 import { ChatDetector } from './chat-detector/ChatDetector';
 import { mountSidebar } from './mount';
+import { startPrivacyBlur } from './privacy-blur';
 import { startReminderSync } from './reminder-sync';
 import { startStatsSync } from './stats-sync';
 
@@ -40,6 +41,8 @@ function bootstrap(): void {
   const stopReminderSync = startReminderSync();
   // Mirror storage usage so the popup can display it.
   const stopStatsSync = startStatsSync();
+  // Privacy screen: blur WhatsApp content until hover (opt-in).
+  const stopPrivacyBlur = startPrivacyBlur();
 
   // Popup → content: expand the sidebar (optionally on a specific section).
   const handleMessage = (raw: unknown): void => {
@@ -57,6 +60,7 @@ function bootstrap(): void {
     detector.stop();
     stopReminderSync();
     stopStatsSync();
+    stopPrivacyBlur();
     try {
       chrome.runtime.onMessage.removeListener(handleMessage);
     } catch {
