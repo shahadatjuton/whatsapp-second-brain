@@ -20,12 +20,49 @@ export function Modal({ open, onClose, title, children }: ModalProps): JSX.Eleme
 
   useEffect(() => {
     if (!open) return;
+    const panel = panelRef.current;
+    // Focus lives in the shadow tree, so query the panel's root (ShadowRoot).
+    const root = (panel?.getRootNode() ?? document) as Document | ShadowRoot;
+    const previouslyFocused = root.activeElement as HTMLElement | null;
+
+    const focusable = (): HTMLElement[] =>
+      panel
+        ? Array.from(
+            panel.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          )
+        : [];
+
+    (focusable()[0] ?? panel)?.focus();
+
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        return;
+      }
+      if (event.shiftKey && root.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && root.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     window.addEventListener('keydown', onKeyDown);
-    panelRef.current?.focus();
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.();
+    };
   }, [open, onClose]);
 
   return (

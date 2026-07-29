@@ -12,6 +12,7 @@ const OUT_DIR = resolve(__dirname, '../public');
 // Brand palette.
 const GREEN = [37, 211, 102, 255];
 const WHITE = [255, 255, 255, 255];
+const TRANSPARENT = [0, 0, 0, 0];
 
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
@@ -70,17 +71,58 @@ function encodePng(size, pixelAt) {
   ]);
 }
 
+function inRoundedRect(x, y, left, top, right, bottom, r) {
+  if (x < left || x > right || y < top || y > bottom) return false;
+  const nx = x < left + r ? left + r : x > right - r ? right - r : x;
+  const ny = y < top + r ? top + r : y > bottom - r ? bottom - r : y;
+  const dx = x - nx;
+  const dy = y - ny;
+  return dx * dx + dy * dy <= r * r;
+}
+
+function inCircle(x, y, cx, cy, r) {
+  const dx = x - cx;
+  const dy = y - cy;
+  return dx * dx + dy * dy <= r * r;
+}
+
+function edge(x, y, ax, ay, bx, by) {
+  return (x - bx) * (ay - by) - (ax - bx) * (y - by);
+}
+
+function inTriangle(x, y, ax, ay, bx, by, cx, cy) {
+  const d1 = edge(x, y, ax, ay, bx, by);
+  const d2 = edge(x, y, bx, by, cx, cy);
+  const d3 = edge(x, y, cx, cy, ax, ay);
+  const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
+  const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
+  return !(hasNeg && hasPos);
+}
+
+// A white speech bubble (with tail + message dots) on a rounded green tile.
 function draw(size) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const outer = size * 0.3;
-  const inner = size * 0.14;
-  return (x, y) => {
-    const dx = x + 0.5 - cx;
-    const dy = y + 0.5 - cy;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    // Ring shape (a simple, recognizable glyph) in white on green.
-    if (d <= outer && d >= inner) return WHITE;
+  const bgRadius = size * 0.22;
+  const bubble = { l: size * 0.19, t: size * 0.24, r: size * 0.81, b: size * 0.6, radius: size * 0.13 };
+  const tail = [size * 0.32, bubble.b - 1, size * 0.3, size * 0.76, size * 0.46, bubble.b - 1];
+  const dotY = size * 0.42;
+  const dotR = size * 0.05;
+  const dotXs = [size * 0.37, size * 0.5, size * 0.63];
+
+  return (px, py) => {
+    const x = px + 0.5;
+    const y = py + 0.5;
+    if (!inRoundedRect(x, y, 0, 0, size, size, bgRadius)) return TRANSPARENT;
+
+    const inBubble =
+      inRoundedRect(x, y, bubble.l, bubble.t, bubble.r, bubble.b, bubble.radius) ||
+      inTriangle(x, y, tail[0], tail[1], tail[2], tail[3], tail[4], tail[5]);
+
+    if (inBubble) {
+      for (const dotX of dotXs) {
+        if (inCircle(x, y, dotX, dotY, dotR)) return GREEN;
+      }
+      return WHITE;
+    }
     return GREEN;
   };
 }

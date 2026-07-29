@@ -6,6 +6,7 @@ import {
   selectDueReminders,
   writeNotifiedIds,
 } from '@/shared/reminder-schedule';
+import { focusWhatsAppAndOpenSidebar } from '@/shared/whatsapp-tab';
 import { logger } from '@/utils/logger';
 import { showReminderNotification } from './notification.service';
 
@@ -70,9 +71,12 @@ export function initReminderScheduler(): void {
     }
   });
 
-  // Clicking a notification dismisses it.
+  // Clicking a reminder notification focuses WhatsApp and opens the reminders.
   chrome.notifications.onClicked.addListener((id) => {
     chrome.notifications.clear(id);
+    if (id.startsWith('reminder:')) {
+      void focusWhatsAppAndOpenSidebar('reminders');
+    }
   });
 
   void processReminders().catch((error) => logger.error('Reminder scheduling failed:', error));

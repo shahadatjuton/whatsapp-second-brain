@@ -4,8 +4,10 @@ import { ArrowLeft, Bell, CheckSquare, StickyNote, type LucideIcon } from 'lucid
 import { DeleteButton } from '@/components/ui/DeleteButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { IconButton } from '@/components/ui/IconButton';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { cn } from '@/components/ui/cn';
 import { useAllData } from '@/hooks/useAllData';
+import { useDebounce } from '@/hooks/useDebounce';
 import { notesService } from '@/services/notes.service';
 import { remindersService } from '@/services/reminders.service';
 import { todosService } from '@/services/todos.service';
@@ -67,6 +69,16 @@ function renderTodo(todo: Todo): JSX.Element {
   );
 }
 
+/** Does an item match the search term (searched fields vary by type). */
+function matchesQuery(item: Note | Todo | Reminder, tab: DataTab, needle: string): boolean {
+  if (tab === 'notes') return (item as Note).content.toLowerCase().includes(needle);
+  if (tab === 'todos') {
+    const todo = item as Todo;
+    return `${todo.title} ${todo.description}`.toLowerCase().includes(needle);
+  }
+  return (item as Reminder).title.toLowerCase().includes(needle);
+}
+
 function renderReminder(reminder: Reminder): JSX.Element {
   const isOverdue = !reminder.completed && reminder.datetime <= Date.now();
   return (
@@ -90,10 +102,15 @@ function renderReminder(reminder: Reminder): JSX.Element {
 /** Full-panel overlay listing every item across chats, grouped by conversation. */
 export function AllDataBrowser({ open, initialTab, onClose }: AllDataBrowserProps): JSX.Element {
   const [tab, setTab] = useState<DataTab>(initialTab);
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 300);
   const data = useAllData();
 
   useEffect(() => {
-    if (open) setTab(initialTab);
+    if (open) {
+      setTab(initialTab);
+      setQuery('');
+    }
   }, [open, initialTab]);
 
   useEffect(() => {
@@ -105,15 +122,22 @@ export function AllDataBrowser({ open, initialTab, onClose }: AllDataBrowserProp
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
 
-  const groups: ChatGroup<Note | Todo | Reminder>[] = data
+  const rawItems: (Note | Todo | Reminder)[] = data
     ? tab === 'notes'
-      ? groupByChat(data.notes, data.chatNames)
+      ? data.notes
       : tab === 'todos'
-        ? groupByChat(data.todos, data.chatNames)
-        : groupByChat(data.reminders, data.chatNames)
+        ? data.todos
+        : data.reminders
     : [];
 
-  const totalCount = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const needle = debouncedQuery.trim().toLowerCase();
+  const filtered = needle ? rawItems.filter((item) => matchesQuery(item, tab, needle)) : rawItems;
+  const groups: ChatGroup<Note | Todo | Reminder>[] = data
+    ? groupByChat(filtered, data.chatNames)
+    : [];
+
+  const totalCount = filtered.length;
+  const hasAny = rawItems.length > 0;
 
   const removeItem = (id: string): void => {
     if (tab === 'notes') void notesService.remove(id);
@@ -169,13 +193,28 @@ export function AllDataBrowser({ open, initialTab, onClose }: AllDataBrowserProp
             ))}
           </nav>
 
+          {hasAny ? (
+            <div className="border-b border-black/5 px-3 py-2 dark:border-white/10">
+              <SearchInput
+                value={query}
+                onChange={setQuery}
+                placeholder={`Search all ${tab}…`}
+                aria-label={`Search ${tab}`}
+              />
+            </div>
+          ) : null}
+
           <div className="flex-1 overflow-y-auto p-3">
-            {totalCount === 0 ? (
+            {!hasAny ? (
               <EmptyState
                 icon={TABS.find((t) => t.id === tab)?.icon ?? StickyNote}
                 title={`No ${tab} yet`}
                 description="Items you create in any chat will appear here."
               />
+            ) : totalCount === 0 ? (
+              <p className="py-8 text-center text-xs text-slate-400">
+                No {tab} match “{debouncedQuery}”.
+              </p>
             ) : (
               <div className="space-y-4">
                 {groups.map((group) => (
