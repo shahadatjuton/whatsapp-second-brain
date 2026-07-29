@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { DatabaseGuard } from '@/components/DatabaseGuard';
 import { useUIStore } from '@/state/ui.store';
 import { ActiveChatBar } from './ActiveChatBar';
 import { Header } from './Header';
@@ -28,7 +29,9 @@ export function Sidebar(): JSX.Element {
       <Header />
       <ActiveChatBar />
       <main className="flex-1 overflow-y-auto">
-        <SectionOutletFromStore />
+        <DatabaseGuard>
+          <SectionOutletFromStore />
+        </DatabaseGuard>
       </main>
       <SectionTabs />
     </motion.aside>

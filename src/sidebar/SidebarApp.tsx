@@ -1,4 +1,4 @@
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useUIStore } from '@/state/ui.store';
 import { Launcher } from './layout/Launcher';
@@ -15,11 +15,14 @@ export function SidebarApp(): JSX.Element {
 
   return (
     <div className={theme === 'dark' ? 'dark' : undefined}>
-      <ErrorBoundary label="sidebar">
-        <AnimatePresence mode="wait" initial={false}>
-          {collapsed ? <Launcher key="launcher" /> : <Sidebar key="sidebar" />}
-        </AnimatePresence>
-      </ErrorBoundary>
+      {/* Respect the user's prefers-reduced-motion setting across all animations. */}
+      <MotionConfig reducedMotion="user">
+        <ErrorBoundary label="sidebar">
+          <AnimatePresence mode="wait" initial={false}>
+            {collapsed ? <Launcher key="launcher" /> : <Sidebar key="sidebar" />}
+          </AnimatePresence>
+        </ErrorBoundary>
+      </MotionConfig>
     </div>
   );
 }

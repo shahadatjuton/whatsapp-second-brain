@@ -32,7 +32,7 @@ export function SectionTabs(): JSX.Element {
               'flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand',
               isActive
-                ? 'text-brand'
+                ? 'text-brand-fg dark:text-brand'
                 : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200',
             )}
           >
