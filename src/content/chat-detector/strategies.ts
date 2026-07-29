@@ -40,17 +40,14 @@ function getMain(): Element | null {
   return document.querySelector('#main');
 }
 
-/**
- * Read the open chat's message ids: the first parseable JID, and whether any
- * `[data-id]` message nodes exist at all.
- */
-function readMessages(main: Element): { jid: string | null; hasMessages: boolean } {
+/** The first parseable chat JID among the open chat's message elements. */
+function readJid(main: Element): string | null {
   const nodes = main.querySelectorAll('[data-id]');
   for (const node of nodes) {
     const jid = parseJidFromDataId(node.getAttribute('data-id') ?? '');
-    if (jid) return { jid, hasMessages: true };
+    if (jid) return jid;
   }
-  return { jid: null, hasMessages: nodes.length > 0 };
+  return null;
 }
 
 /**
@@ -90,24 +87,24 @@ export function collectDetectionDiagnostics(): string {
 }
 
 /**
- * Resolve the currently open conversation, or `null` when it can't yet be
- * identified.
+ * Resolve the currently open conversation, or `null` when it can't be
+ * identified at all.
  *
- * The id is ALWAYS the stable JID whenever the chat has messages. A name-based
- * id is used only for a genuinely empty conversation (no messages at all). If
- * messages exist but no JID parsed — a selector/format problem — we return
- * `null` rather than inventing a name-based id, so a chat that has a JID can
- * never end up stored under two different ids (which is what orphaned notes).
+ * The stable JID is preferred (globally unique). When it can't be parsed — for
+ * example if WhatsApp's `data-id` format differs from what we recognise — we
+ * fall back to a `name:`-prefixed id from the header title so the chat is still
+ * usable. As long as the detection code stays stable, a given chat resolves the
+ * same way every time, so notes never get split across ids.
  */
 export function resolveChatContext(): ChatContext | null {
   const main = getMain();
   if (!main) return null;
 
   const name = chatNameFromHeader();
-  const { jid, hasMessages } = readMessages(main);
+  const jid = readJid(main);
 
   if (jid) return { chatId: jid, chatName: name ?? deriveDisplayName(jid) };
-  if (!hasMessages && name) return { chatId: `name:${name}`, chatName: name };
+  if (name) return { chatId: `name:${name}`, chatName: name };
   return null;
 }
 
