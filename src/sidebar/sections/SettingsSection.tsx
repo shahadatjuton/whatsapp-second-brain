@@ -19,7 +19,7 @@ import {
   exportAllData,
   importData,
 } from '@/services/data-transfer.service';
-import { useUIStore } from '@/state/ui.store';
+import { useUIStore, type BlurStrength } from '@/state/ui.store';
 import type { Theme } from '@/types/enums';
 import { dayjs } from '@/utils/date';
 import { downloadJson } from '@/utils/download';
@@ -33,6 +33,12 @@ const BROWSE_ROWS: ReadonlyArray<{ key: DataTab; label: string }> = [
   { key: 'notes', label: 'Notes' },
   { key: 'todos', label: 'Todos' },
   { key: 'reminders', label: 'Reminders' },
+];
+
+const STRENGTH_OPTIONS: ReadonlyArray<{ value: BlurStrength; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'strong', label: 'Strong' },
 ];
 
 const THEME_OPTIONS: ReadonlyArray<{ value: Theme; label: string; icon: typeof Sun }> = [
@@ -60,12 +66,18 @@ export function SettingsSection(): JSX.Element {
   const resetSettings = useUIStore((state) => state.resetSettings);
   const blurEnabled = useUIStore((state) => state.blurEnabled);
   const blurNames = useUIStore((state) => state.blurNames);
-  const blurMessages = useUIStore((state) => state.blurMessages);
+  const blurText = useUIStore((state) => state.blurText);
   const blurMedia = useUIStore((state) => state.blurMedia);
+  const blurAvatars = useUIStore((state) => state.blurAvatars);
+  const blurStrength = useUIStore((state) => state.blurStrength);
+  const blurReveal = useUIStore((state) => state.blurReveal);
   const setBlurEnabled = useUIStore((state) => state.setBlurEnabled);
   const setBlurNames = useUIStore((state) => state.setBlurNames);
-  const setBlurMessages = useUIStore((state) => state.setBlurMessages);
+  const setBlurText = useUIStore((state) => state.setBlurText);
   const setBlurMedia = useUIStore((state) => state.setBlurMedia);
+  const setBlurAvatars = useUIStore((state) => state.setBlurAvatars);
+  const setBlurStrength = useUIStore((state) => state.setBlurStrength);
+  const setBlurReveal = useUIStore((state) => state.setBlurReveal);
   const usage = useStorageUsage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>(null);
@@ -153,11 +165,15 @@ export function SettingsSection(): JSX.Element {
 
         {blurEnabled ? (
           <div className="mt-3 space-y-2.5 border-t border-black/5 pt-3 dark:border-white/10">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              What to blur
+            </p>
             {(
               [
                 ['Contact names', blurNames, setBlurNames],
-                ['Messages', blurMessages, setBlurMessages],
-                ['Images & avatars', blurMedia, setBlurMedia],
+                ['Message text', blurText, setBlurText],
+                ['Photos & media', blurMedia, setBlurMedia],
+                ['Profile pictures', blurAvatars, setBlurAvatars],
               ] as const
             ).map(([label, value, setValue]) => (
               <div key={label} className="flex items-center justify-between">
@@ -165,6 +181,33 @@ export function SettingsSection(): JSX.Element {
                 <Toggle checked={value} onChange={setValue} label={label} />
               </div>
             ))}
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-xs text-slate-600 dark:text-slate-300">Strength</span>
+              <div className="flex rounded-card bg-surface-muted p-0.5 dark:bg-surface-dark">
+                {STRENGTH_OPTIONS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={blurStrength === value}
+                    onClick={() => setBlurStrength(value)}
+                    className={cn(
+                      'rounded-[0.6rem] px-2 py-1 text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+                      blurStrength === value
+                        ? 'bg-white text-slate-800 shadow-sm dark:bg-surface-dark-muted dark:text-slate-100'
+                        : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-200',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between border-t border-black/5 pt-2.5 dark:border-white/10">
+              <span className="text-xs text-slate-600 dark:text-slate-300">Reveal on hover</span>
+              <Toggle checked={blurReveal} onChange={setBlurReveal} label="Reveal on hover" />
+            </div>
           </div>
         ) : null}
       </Group>

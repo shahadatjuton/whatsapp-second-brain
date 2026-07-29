@@ -3,6 +3,9 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Section, Theme } from '@/types/enums';
 import { chromeStorage } from './chrome-storage';
 
+/** Blur intensity for the privacy screen. */
+export type BlurStrength = 'light' | 'medium' | 'strong';
+
 /** Sidebar width bounds (px) — PRD: min 300, max 500, default 380. */
 export const SIDEBAR_MIN_WIDTH = 300;
 export const SIDEBAR_MAX_WIDTH = 500;
@@ -29,8 +32,12 @@ interface UIState {
   /** Privacy-screen (blur-until-hover) settings for WhatsApp's own content. */
   blurEnabled: boolean;
   blurNames: boolean;
-  blurMessages: boolean;
+  blurText: boolean;
   blurMedia: boolean;
+  blurAvatars: boolean;
+  blurStrength: BlurStrength;
+  /** Whether hovering an element temporarily reveals it. */
+  blurReveal: boolean;
 
   setActiveSection: (section: Section) => void;
   setTheme: (theme: Theme) => void;
@@ -40,8 +47,11 @@ interface UIState {
   toggleCollapsed: () => void;
   setBlurEnabled: (value: boolean) => void;
   setBlurNames: (value: boolean) => void;
-  setBlurMessages: (value: boolean) => void;
+  setBlurText: (value: boolean) => void;
   setBlurMedia: (value: boolean) => void;
+  setBlurAvatars: (value: boolean) => void;
+  setBlurStrength: (value: BlurStrength) => void;
+  setBlurReveal: (value: boolean) => void;
   /** Reset presentation preferences to defaults (keeps the panel open). */
   resetSettings: () => void;
 }
@@ -61,8 +71,11 @@ export const useUIStore = create<UIState>()(
       collapsed: true,
       blurEnabled: false,
       blurNames: true,
-      blurMessages: true,
+      blurText: true,
       blurMedia: true,
+      blurAvatars: true,
+      blurStrength: 'medium',
+      blurReveal: true,
 
       setActiveSection: (activeSection) => set({ activeSection }),
       setTheme: (theme) => set({ theme }),
@@ -72,8 +85,11 @@ export const useUIStore = create<UIState>()(
       toggleCollapsed: () => set((state) => ({ collapsed: !state.collapsed })),
       setBlurEnabled: (blurEnabled) => set({ blurEnabled }),
       setBlurNames: (blurNames) => set({ blurNames }),
-      setBlurMessages: (blurMessages) => set({ blurMessages }),
+      setBlurText: (blurText) => set({ blurText }),
       setBlurMedia: (blurMedia) => set({ blurMedia }),
+      setBlurAvatars: (blurAvatars) => set({ blurAvatars }),
+      setBlurStrength: (blurStrength) => set({ blurStrength }),
+      setBlurReveal: (blurReveal) => set({ blurReveal }),
       resetSettings: () =>
         set({
           theme: getInitialTheme(),
@@ -91,8 +107,11 @@ export const useUIStore = create<UIState>()(
         activeSection: state.activeSection,
         blurEnabled: state.blurEnabled,
         blurNames: state.blurNames,
-        blurMessages: state.blurMessages,
+        blurText: state.blurText,
         blurMedia: state.blurMedia,
+        blurAvatars: state.blurAvatars,
+        blurStrength: state.blurStrength,
+        blurReveal: state.blurReveal,
       }),
     },
   ),
