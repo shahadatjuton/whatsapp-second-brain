@@ -65,9 +65,9 @@ export function NoteCard({ note, autoFocus = false }: NoteCardProps): JSX.Elemen
   };
 
   return (
-    <li className="rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+    <li className="rounded-card border border-black/5 bg-white p-3 shadow-soft transition-shadow focus-within:border-brand/40 dark:border-white/10 dark:bg-surface-dark-muted">
       {isPreview ? (
-        <div className="min-h-[3rem] space-y-2 text-sm text-slate-800 dark:text-slate-100">
+        <div className="min-h-[2.75rem] space-y-2 text-sm text-slate-800 dark:text-slate-100">
           {content.trim() ? (
             renderMarkdown(content)
           ) : (
@@ -80,13 +80,14 @@ export function NoteCard({ note, autoFocus = false }: NoteCardProps): JSX.Elemen
           value={content}
           onChange={(event) => setContent(event.target.value)}
           onBlur={handleBlur}
-          placeholder="Write a note… Markdown supported."
+          placeholder="Write a note…  **markdown** supported"
           rows={2}
           aria-label="Note content"
+          className="min-h-[2.75rem]"
         />
       )}
 
-      <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-2 dark:border-white/10">
+      <div className="mt-2.5 flex items-center justify-between border-t border-black/5 pt-2.5 dark:border-white/10">
         <span className="text-[11px] text-slate-400">Edited {fromNow(note.updatedAt)}</span>
 
         <div className="flex items-center gap-1">

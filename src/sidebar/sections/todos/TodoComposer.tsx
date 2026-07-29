@@ -34,16 +34,16 @@ export function TodoComposer({ chatId }: TodoComposerProps): JSX.Element {
   };
 
   return (
-    <div className="flex flex-col gap-2 rounded-card border border-black/5 bg-white p-2.5 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
+    <div className="flex flex-col gap-2.5 rounded-card border border-black/5 bg-white p-3 shadow-soft dark:border-white/10 dark:bg-surface-dark-muted">
       <Textarea
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Add a task…  (Enter to add, Shift+Enter for a new line)"
+        placeholder="Add a task…"
         rows={1}
         aria-label="New task"
       />
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 border-t border-black/5 pt-2.5 dark:border-white/10">
         <Select
           value={priority}
           onChange={setPriority}
@@ -51,8 +51,8 @@ export function TodoComposer({ chatId }: TodoComposerProps): JSX.Element {
           aria-label="Task priority"
         />
         <Button size="sm" onClick={() => void submit()} disabled={!title.trim()}>
-          <Plus size={16} aria-hidden />
-          Add
+          <Plus size={15} aria-hidden />
+          Add task
         </Button>
       </div>
     </div>
